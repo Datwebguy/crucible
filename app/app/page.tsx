@@ -6,6 +6,7 @@ import { Navbar } from "@/components/Navbar"
 import { AnalysisInput } from "@/components/AnalysisInput"
 import { ProgressStepper } from "@/components/ProgressStepper"
 import { AgentCard } from "@/components/AgentCard"
+import { FlowCanvas } from "@/components/FlowCanvas"
 import { useAnalysis } from "@/hooks/useAnalysis"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useRateLimit } from "@/hooks/useRateLimit"
@@ -47,7 +48,8 @@ export default function AppPage() {
   const hasStarted = agentStates.some((s) => s.status !== "idle")
 
   return (
-    <div className="min-h-screen bg-[#070609] text-white">
+    <div className="relative min-h-screen bg-[#070609] text-white overflow-hidden">
+      <FlowCanvas />
       <Navbar />
 
       <main className="max-w-3xl mx-auto px-6 pt-24 pb-20">

@@ -30,11 +30,25 @@ export function useAnalysis(walletAddress?: string) {
       setAgentStates(initialAgentStates())
 
       try {
+        // Show all 4 agents activating sequentially while API runs (~12s per agent)
+        setAgentStatus(AGENTS[0].id as AgentId, { status: "running" })
+        const agentTimings = [0, 11000, 22000, 34000]
+        const timers: ReturnType<typeof setTimeout>[] = []
+        for (let i = 1; i < AGENTS.length; i++) {
+          const timer = setTimeout(() => {
+            setAgentStatus(AGENTS[i].id as AgentId, { status: "running" })
+          }, agentTimings[i])
+          timers.push(timer)
+        }
+
         const res = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input, walletAddress }),
         })
+
+        // Clear the simulated timers once real data arrives
+        timers.forEach(clearTimeout)
 
         if (res.status === 429) {
           const { error: msg } = await res.json()
@@ -47,23 +61,17 @@ export function useAnalysis(walletAddress?: string) {
           return
         }
 
-        // Show agents activating sequentially for better UX
-        setAgentStatus(AGENTS[0].id as AgentId, { status: "running" })
-
         const data = await res.json()
 
-        // Reveal results one by one with short delays
+        // Reveal real results one by one
         for (let i = 0; i < AGENTS.length; i++) {
-          const agent = AGENTS[i]
-          if (i > 0) {
-            setAgentStatus(AGENTS[i].id as AgentId, { status: "running" })
-            await new Promise((r) => setTimeout(r, 400))
-          }
-          setAgentStatus(agent.id as AgentId, {
+          setAgentStatus(AGENTS[i].id as AgentId, { status: "running" })
+          await new Promise((r) => setTimeout(r, 300))
+          setAgentStatus(AGENTS[i].id as AgentId, {
             status: "done",
-            output: data.results[agent.id] || "",
+            output: data.results[AGENTS[i].id] || "",
           })
-          if (i < AGENTS.length - 1) await new Promise((r) => setTimeout(r, 300))
+          if (i < AGENTS.length - 1) await new Promise((r) => setTimeout(r, 400))
         }
 
         setResult({

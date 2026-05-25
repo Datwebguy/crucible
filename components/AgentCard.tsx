@@ -12,8 +12,15 @@ interface AgentCardProps {
 function isHeader(line: string): boolean {
   const trimmed = line.trim()
   if (!trimmed) return false
-  // ALL CAPS line with optional colon, score, or number — treat as header
-  return /^[A-Z][A-Z0-9\s:\/\-\.]+$/.test(trimmed) && trimmed.length > 2
+  // ALL CAPS section label (e.g. BEAR THESIS, REASONING SCORE: 45/100)
+  if (/^[A-Z][A-Z0-9\s:\/\.]+$/.test(trimmed) && trimmed.length > 2) return true
+  // Numbered list item (e.g. "1.", "2.", "3.")
+  if (/^\d+\.$/.test(trimmed)) return true
+  return false
+}
+
+function isNumberedItem(line: string): boolean {
+  return /^\d+\./.test(line.trim()) && line.trim().length > 3
 }
 
 function renderOutput(text: string, color: string) {
@@ -34,11 +41,23 @@ function renderOutput(text: string, color: string) {
       elements.push(
         <p
           key={key++}
-          className="font-mono text-[11px] font-bold tracking-wider mt-3 first:mt-0"
+          className="font-mono text-[11px] font-bold tracking-wider mt-4 first:mt-0"
           style={{ color }}
         >
           {trimmed}
         </p>
+      )
+    } else if (isNumberedItem(trimmed)) {
+      const numEnd = trimmed.indexOf(".") + 1
+      const num = trimmed.slice(0, numEnd)
+      const rest = trimmed.slice(numEnd).trim()
+      elements.push(
+        <div key={key++} className="flex gap-2 mt-1">
+          <span className="font-mono text-[11px] font-bold shrink-0 mt-0.5" style={{ color }}>
+            {num}
+          </span>
+          <p className="font-body text-sm text-white/75 leading-relaxed">{rest}</p>
+        </div>
       )
     } else {
       elements.push(
