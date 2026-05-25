@@ -48,11 +48,11 @@ export default function AppPage() {
   const hasStarted = agentStates.some((s) => s.status !== "idle")
 
   return (
-    <div className="relative min-h-screen bg-[#070609] text-white overflow-hidden">
+    <div className="relative min-h-screen bg-[#070609] text-white">
       <FlowCanvas />
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-6 pt-24 pb-20">
+      <main className="relative z-10 max-w-3xl mx-auto px-6 pt-24 pb-20">
         {/* Header */}
         <div className="mb-10">
           <h1 className="font-heading text-2xl font-bold mb-1">Run an Analysis</h1>

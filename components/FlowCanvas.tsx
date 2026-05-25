@@ -10,7 +10,7 @@ interface Node {
   radius: number
   isHub: boolean
   phase: number
-  depth: number // 0=far, 1=close — affects brightness
+  depth: number
 }
 
 interface Particle {
@@ -37,15 +37,15 @@ export function FlowCanvas() {
     const PARTICLE_COUNT = 30
     const MAX_DIST = 220
 
-    function resize() {
-      if (!canvas) return
-      canvas.width = canvas.offsetWidth * window.devicePixelRatio
-      canvas.height = canvas.offsetHeight * window.devicePixelRatio
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
-    }
+    function W() { return window.innerWidth }
+    function H() { return window.innerHeight }
 
-    function W() { return canvas ? canvas.offsetWidth : 0 }
-    function H() { return canvas ? canvas.offsetHeight : 0 }
+    function resize() {
+      canvas.width = W() * window.devicePixelRatio
+      canvas.height = H() * window.devicePixelRatio
+      // setTransform resets accumulated scales from previous resize calls
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0)
+    }
 
     function init() {
       nodes.length = 0
@@ -74,11 +74,10 @@ export function FlowCanvas() {
       particles[i] = { from, to, t: 0, speed: 0.005 + Math.random() * 0.012 }
     }
 
-    // Multi-layer glow: draw expanding soft rings + hard core
     function glowCircle(x: number, y: number, r: number, color: string, alpha: number, layers = 3) {
       for (let l = layers; l >= 0; l--) {
         const layerR = r + l * r * 1.8
-        const layerA = (alpha * (l === 0 ? 1 : 0.12 / l))
+        const layerA = alpha * (l === 0 ? 1 : 0.12 / l)
         ctx.beginPath()
         ctx.arc(x, y, layerR, 0, Math.PI * 2)
         ctx.fillStyle = l === 0
@@ -88,7 +87,6 @@ export function FlowCanvas() {
       }
     }
 
-    // Glowing line with soft halo
     function glowLine(
       x1: number, y1: number,
       x2: number, y2: number,
@@ -96,7 +94,6 @@ export function FlowCanvas() {
       width: number,
       color: string
     ) {
-      // Outer halo
       ctx.beginPath()
       ctx.moveTo(x1, y1)
       ctx.lineTo(x2, y2)
@@ -104,7 +101,6 @@ export function FlowCanvas() {
       ctx.lineWidth = width * 3.5
       ctx.stroke()
 
-      // Core line
       ctx.beginPath()
       ctx.moveTo(x1, y1)
       ctx.lineTo(x2, y2)
@@ -114,12 +110,11 @@ export function FlowCanvas() {
     }
 
     function draw(time: number) {
-      if (!canvas || !ctx) return
       const w = W()
       const h = H()
       ctx.clearRect(0, 0, w, h)
 
-      // Subtle hex dot grid
+      // Subtle dot grid
       ctx.fillStyle = "rgba(232,114,10,0.09)"
       const gs = 48
       for (let gx = 0; gx <= w; gx += gs) {
@@ -130,7 +125,7 @@ export function FlowCanvas() {
         }
       }
 
-      // Draw edges
+      // Edges
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const a = nodes[i]
@@ -156,7 +151,7 @@ export function FlowCanvas() {
         }
       }
 
-      // Draw particles
+      // Particles
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]
         const from = nodes[p.from]
@@ -169,7 +164,6 @@ export function FlowCanvas() {
         const px = from.x + (to.x - from.x) * p.t
         const py = from.y + (to.y - from.y) * p.t
 
-        // Particle trail
         const trailLen = 0.12
         const trailStart = Math.max(0, p.t - trailLen)
         const tx = from.x + (to.x - from.x) * trailStart
@@ -185,23 +179,20 @@ export function FlowCanvas() {
         ctx.lineWidth = 2
         ctx.stroke()
 
-        // Particle head glow
         glowCircle(px, py, 2.5, "255,220,80", 0.95, 2)
 
         p.t += p.speed
         if (p.t >= 1) resetParticle(i)
       }
 
-      // Draw nodes
+      // Nodes
       for (const node of nodes) {
         const pulse = 0.75 + 0.25 * Math.sin(time * 0.0012 + node.phase)
         const r = node.radius * pulse
         const alpha = (0.5 + 0.5 * node.depth) * pulse
 
         if (node.isHub) {
-          // Outer ambient ring
           glowCircle(node.x, node.y, r, "255,130,20", alpha * 0.9, 4)
-          // Bright core
           glowCircle(node.x, node.y, r * 0.45, "255,200,100", 1, 1)
         } else {
           glowCircle(node.x, node.y, r, "232,114,10", alpha * 0.85, 2)
@@ -220,20 +211,23 @@ export function FlowCanvas() {
     init()
     animId = requestAnimationFrame(draw)
 
-    const ro = new ResizeObserver(() => { resize(); init() })
-    ro.observe(canvas)
+    function onResize() {
+      resize()
+      init()
+    }
+    window.addEventListener("resize", onResize)
 
     return () => {
       cancelAnimationFrame(animId)
-      ro.disconnect()
+      window.removeEventListener("resize", onResize)
     }
   }, [])
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ opacity: 0.9 }}
+      className="fixed inset-0 w-full h-full pointer-events-none"
+      style={{ opacity: 0.9, zIndex: 0 }}
       aria-hidden
     />
   )

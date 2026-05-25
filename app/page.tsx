@@ -6,6 +6,9 @@ import { AGENTS } from "@/lib/agents"
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#070609] text-white">
+      <FlowCanvas />
+      {/* All content sits above the fixed canvas */}
+      <div className="relative z-10">
       {/* Minimal nav */}
       <header className="fixed top-0 left-0 right-0 z-50 px-6 h-14 flex items-center justify-between border-b border-white/[0.06] bg-[#070609]/80 backdrop-blur-md">
         <Logo size="sm" />
@@ -23,9 +26,8 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-14 overflow-hidden">
-        <FlowCanvas />
-        <div className="relative z-10 text-center max-w-3xl mx-auto">
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-14">
+        <div className="text-center max-w-3xl mx-auto">
           <div className="inline-block font-mono text-[10px] uppercase tracking-[0.3em] text-amber-400/80 border border-amber-500/20 px-3 py-1 rounded-full mb-8">
             Decision Intelligence for Web3
           </div>
@@ -166,6 +168,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+      </div>{/* end z-10 wrapper */}
     </div>
   )
 }
