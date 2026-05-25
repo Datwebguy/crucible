@@ -97,15 +97,15 @@ export default function TokenPage() {
         <div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.02] p-6 space-y-4">
           <h2 className="font-heading font-semibold text-amber-400">How to Get CRUCIBLE</h2>
           <p className="font-body text-sm text-white/50 leading-relaxed">
-            CRUCIBLE tokens are available on the Swarms Marketplace. Once you hold the minimum amount, your wallet will automatically unlock all token holder features on this platform.
+            CRUCIBLE tokens are available on DexScreener. Once you hold the minimum amount, your wallet will automatically unlock all token holder features on this platform.
           </p>
           <a
-            href="https://swarms.world"
+            href="https://dexscreener.com/solana/AprqPULHGkpD8uy9K3PtNeJdcVzzyhcFexcmtSg5swrm"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block font-mono text-xs px-5 py-2.5 rounded bg-amber-500 text-black font-bold hover:bg-amber-400 transition-colors"
           >
-            Get Tokens on Swarms Marketplace →
+            Buy $CRUCIBLE on DexScreener →
           </a>
         </div>
       </main>
