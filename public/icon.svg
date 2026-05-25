@@ -1,0 +1,82 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7A3000" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hexFill" cx="45%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#FFA040"/>
+      <stop offset="45%" stop-color="#E8720A"/>
+      <stop offset="100%" stop-color="#6B2D00"/>
+    </radialGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="35%" stop-color="#FFEECC" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FF8800" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0.4 0 0 0  0.3 0.2 0 0 0  0 0 0 0 0  0 0 0 1 0"
+        result="orange"/>
+      <feMerge>
+        <feMergeNode in="orange"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="centerBloom" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ambient background glow -->
+  <ellipse cx="100" cy="100" rx="95" ry="95" fill="url(#bgGlow)"/>
+
+  <!-- Outer dashed hexagon ring (flat-top, R=91) -->
+  <polygon
+    points="191,100 145.5,21.1 54.5,21.1 9,100 54.5,178.9 145.5,178.9"
+    fill="none"
+    stroke="rgba(255,160,60,0.35)"
+    stroke-width="1"
+    stroke-dasharray="3,4"
+  />
+
+  <!-- Main filled hexagon (R=76) -->
+  <polygon
+    points="176,100 138,34.1 62,34.1 24,100 62,165.9 138,165.9"
+    fill="url(#hexFill)"
+    filter="url(#glow)"
+  />
+
+  <!-- Inner web lines: center to each vertex -->
+  <g stroke="rgba(255,220,140,0.45)" stroke-width="1">
+    <line x1="100" y1="100" x2="176" y2="100"/>
+    <line x1="100" y1="100" x2="138" y2="34.1"/>
+    <line x1="100" y1="100" x2="62"  y2="34.1"/>
+    <line x1="100" y1="100" x2="24"  y2="100"/>
+    <line x1="100" y1="100" x2="62"  y2="165.9"/>
+    <line x1="100" y1="100" x2="138" y2="165.9"/>
+  </g>
+
+  <!-- Cross-vertex diagonal lines -->
+  <g stroke="rgba(255,200,100,0.18)" stroke-width="0.8">
+    <!-- Skip-one-vertex connections -->
+    <line x1="176" y1="100" x2="62"  y2="34.1"/>
+    <line x1="176" y1="100" x2="62"  y2="165.9"/>
+    <line x1="138" y1="34.1" x2="24"  y2="100"/>
+    <line x1="138" y1="34.1" x2="138" y2="165.9"/>
+    <line x1="62"  y1="34.1" x2="24"  y2="100"/>
+    <line x1="24"  y1="100" x2="138" y2="165.9"/>
+    <line x1="62"  y1="165.9" x2="176" y2="100"/>
+    <line x1="62"  y1="165.9" x2="138" y2="34.1"/>
+  </g>
+
+  <!-- Center bloom -->
+  <circle cx="100" cy="100" r="22" fill="url(#centerGlow)" filter="url(#centerBloom)" opacity="0.85"/>
+  <!-- Hard center dot -->
+  <circle cx="100" cy="100" r="5" fill="white" opacity="0.95"/>
+</svg>

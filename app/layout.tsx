@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   description:
     "Four AI agents audit your investment thesis, DAO proposal, or on-chain strategy — hunting bias, building the bear case, surfacing assumptions, and issuing a final verdict.",
   keywords: ["web3", "decision intelligence", "AI", "DeFi", "Solana", "bias detection"],
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 }
 
 export default function RootLayout({
