@@ -24,10 +24,14 @@ export function FlowCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
+    const _canvas = canvasRef.current
+    if (!_canvas) return
+    const _ctx = _canvas.getContext("2d")
+    if (!_ctx) return
+
+    // Explicitly typed as non-null so TypeScript accepts them inside nested closures
+    const canvas: HTMLCanvasElement = _canvas
+    const ctx: CanvasRenderingContext2D = _ctx
 
     let animId: number
     const nodes: Node[] = []
