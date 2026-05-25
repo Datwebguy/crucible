@@ -8,15 +8,15 @@ interface Node {
   vx: number
   vy: number
   radius: number
-  opacity: number
   isHub: boolean
-  pulseOffset: number
+  phase: number
+  depth: number // 0=far, 1=close — affects brightness
 }
 
 interface Particle {
-  fromNode: number
-  toNode: number
-  progress: number
+  from: number
+  to: number
+  t: number
   speed: number
 }
 
@@ -32,167 +32,195 @@ export function FlowCanvas() {
     let animId: number
     const nodes: Node[] = []
     const particles: Particle[] = []
-    const NODE_COUNT = 65
-    const HUB_COUNT = 8
-    const PARTICLE_COUNT = 22
-    const CONNECT_DIST = 200
+    const NODE_COUNT = 80
+    const HUB_COUNT = 10
+    const PARTICLE_COUNT = 30
+    const MAX_DIST = 220
 
     function resize() {
       if (!canvas) return
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio
+      canvas.height = canvas.offsetHeight * window.devicePixelRatio
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
     }
 
-    function initNodes() {
-      if (!canvas) return
+    function W() { return canvas ? canvas.offsetWidth : 0 }
+    function H() { return canvas ? canvas.offsetHeight : 0 }
+
+    function init() {
       nodes.length = 0
       particles.length = 0
-
       for (let i = 0; i < NODE_COUNT; i++) {
         const isHub = i < HUB_COUNT
+        const depth = Math.random()
         nodes.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * (isHub ? 0.25 : 0.45),
-          vy: (Math.random() - 0.5) * (isHub ? 0.25 : 0.45),
-          radius: isHub ? Math.random() * 2.5 + 3 : Math.random() * 1.8 + 1,
-          opacity: isHub ? 0.85 : Math.random() * 0.45 + 0.3,
+          x: Math.random() * W(),
+          y: Math.random() * H(),
+          vx: (Math.random() - 0.5) * (isHub ? 0.3 : 0.6) * (0.5 + depth * 0.5),
+          vy: (Math.random() - 0.5) * (isHub ? 0.3 : 0.6) * (0.5 + depth * 0.5),
+          radius: isHub ? 4 + Math.random() * 4 : 1.5 + Math.random() * 2.5 * depth,
           isHub,
-          pulseOffset: Math.random() * Math.PI * 2,
+          phase: Math.random() * Math.PI * 2,
+          depth,
         })
       }
-
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        spawnParticle(i)
-      }
+      for (let i = 0; i < PARTICLE_COUNT; i++) resetParticle(i)
     }
 
-    function spawnParticle(idx: number) {
+    function resetParticle(i: number) {
       const from = Math.floor(Math.random() * NODE_COUNT)
       let to = Math.floor(Math.random() * NODE_COUNT)
       while (to === from) to = Math.floor(Math.random() * NODE_COUNT)
-      particles[idx] = {
-        fromNode: from,
-        toNode: to,
-        progress: Math.random(),
-        speed: Math.random() * 0.004 + 0.002,
+      particles[i] = { from, to, t: 0, speed: 0.005 + Math.random() * 0.012 }
+    }
+
+    // Multi-layer glow: draw expanding soft rings + hard core
+    function glowCircle(x: number, y: number, r: number, color: string, alpha: number, layers = 3) {
+      for (let l = layers; l >= 0; l--) {
+        const layerR = r + l * r * 1.8
+        const layerA = (alpha * (l === 0 ? 1 : 0.12 / l))
+        ctx.beginPath()
+        ctx.arc(x, y, layerR, 0, Math.PI * 2)
+        ctx.fillStyle = l === 0
+          ? `rgba(${color},${layerA})`
+          : `rgba(${color},${Math.min(layerA, 0.15)})`
+        ctx.fill()
       }
     }
 
-    function drawGlow(x: number, y: number, radius: number, color: string, alpha: number, blur: number) {
-      if (!ctx) return
-      ctx.save()
-      ctx.shadowColor = color
-      ctx.shadowBlur = blur
-      ctx.globalAlpha = alpha
+    // Glowing line with soft halo
+    function glowLine(
+      x1: number, y1: number,
+      x2: number, y2: number,
+      alpha: number,
+      width: number,
+      color: string
+    ) {
+      // Outer halo
       ctx.beginPath()
-      ctx.arc(x, y, radius, 0, Math.PI * 2)
-      ctx.fillStyle = color
-      ctx.fill()
-      ctx.restore()
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+      ctx.strokeStyle = `rgba(${color},${alpha * 0.25})`
+      ctx.lineWidth = width * 3.5
+      ctx.stroke()
+
+      // Core line
+      ctx.beginPath()
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+      ctx.strokeStyle = `rgba(${color},${alpha})`
+      ctx.lineWidth = width
+      ctx.stroke()
     }
 
-    function draw(t: number) {
+    function draw(time: number) {
       if (!canvas || !ctx) return
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      const w = W()
+      const h = H()
+      ctx.clearRect(0, 0, w, h)
 
-      // Subtle dot grid background
-      ctx.globalAlpha = 0.06
-      ctx.fillStyle = "#E8720A"
-      const gridSize = 45
-      for (let gx = 0; gx < canvas.width; gx += gridSize) {
-        for (let gy = 0; gy < canvas.height; gy += gridSize) {
+      // Subtle hex dot grid
+      ctx.fillStyle = "rgba(232,114,10,0.09)"
+      const gs = 48
+      for (let gx = 0; gx <= w; gx += gs) {
+        for (let gy = 0; gy <= h; gy += gs) {
           ctx.beginPath()
-          ctx.arc(gx, gy, 0.8, 0, Math.PI * 2)
+          ctx.arc(gx, gy, 1, 0, Math.PI * 2)
           ctx.fill()
         }
       }
-      ctx.globalAlpha = 1
 
-      // Draw edges between nearby nodes
+      // Draw edges
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const a = nodes[i]
           const b = nodes[j]
-          const dist = Math.hypot(a.x - b.x, a.y - b.y)
-          if (dist > CONNECT_DIST) continue
+          const dx = a.x - b.x
+          const dy = a.y - b.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist > MAX_DIST) continue
 
-          const proximity = 1 - dist / CONNECT_DIST
-          const pulse = 0.5 + 0.5 * Math.sin(t * 0.0008 + a.pulseOffset + b.pulseOffset)
-          const alpha = proximity * pulse * 0.35
+          const proximity = 1 - dist / MAX_DIST
+          const pulse = 0.55 + 0.45 * Math.sin(time * 0.00085 + a.phase + b.phase)
+          const depthBoost = (a.depth + b.depth) * 0.5
+          const hubBoost = (a.isHub || b.isHub) ? 2.2 : 1
+          const alpha = proximity * pulse * depthBoost * hubBoost * 0.65
+          const width = proximity * depthBoost * hubBoost * 1.4
 
-          ctx.save()
-          ctx.beginPath()
-          ctx.moveTo(a.x, a.y)
-          ctx.lineTo(b.x, b.y)
-          ctx.strokeStyle = `rgba(232, 114, 10, ${alpha})`
-          ctx.lineWidth = proximity * 1.2
-          if (a.isHub || b.isHub) {
-            ctx.shadowColor = "#E8720A"
-            ctx.shadowBlur = 4
-            ctx.lineWidth = proximity * 1.8
-            ctx.strokeStyle = `rgba(255, 150, 30, ${alpha * 1.4})`
-          }
-          ctx.stroke()
-          ctx.restore()
+          glowLine(
+            a.x, a.y, b.x, b.y,
+            Math.min(alpha, 0.75),
+            Math.min(width, 2.2),
+            (a.isHub || b.isHub) ? "255,160,40" : "232,114,10"
+          )
         }
       }
 
-      // Draw particles traveling along edges
-      for (let p = 0; p < particles.length; p++) {
-        const particle = particles[p]
-        const from = nodes[particle.fromNode]
-        const to = nodes[particle.toNode]
-        if (!from || !to) continue
+      // Draw particles
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i]
+        const from = nodes[p.from]
+        const to = nodes[p.to]
+        if (!from || !to) { resetParticle(i); continue }
 
         const dist = Math.hypot(from.x - to.x, from.y - to.y)
-        if (dist > CONNECT_DIST * 1.5) {
-          spawnParticle(p)
-          continue
-        }
+        if (dist > MAX_DIST * 1.6) { resetParticle(i); continue }
 
-        const px = from.x + (to.x - from.x) * particle.progress
-        const py = from.y + (to.y - from.y) * particle.progress
+        const px = from.x + (to.x - from.x) * p.t
+        const py = from.y + (to.y - from.y) * p.t
 
-        drawGlow(px, py, 1.8, "#FFD080", 0.9, 8)
+        // Particle trail
+        const trailLen = 0.12
+        const trailStart = Math.max(0, p.t - trailLen)
+        const tx = from.x + (to.x - from.x) * trailStart
+        const ty = from.y + (to.y - from.y) * trailStart
 
-        particle.progress += particle.speed
-        if (particle.progress >= 1) {
-          spawnParticle(p)
-        }
+        const grad = ctx.createLinearGradient(tx, ty, px, py)
+        grad.addColorStop(0, "rgba(255,200,80,0)")
+        grad.addColorStop(1, "rgba(255,220,100,0.85)")
+        ctx.beginPath()
+        ctx.moveTo(tx, ty)
+        ctx.lineTo(px, py)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 2
+        ctx.stroke()
+
+        // Particle head glow
+        glowCircle(px, py, 2.5, "255,220,80", 0.95, 2)
+
+        p.t += p.speed
+        if (p.t >= 1) resetParticle(i)
       }
 
       // Draw nodes
       for (const node of nodes) {
-        const pulse = 0.7 + 0.3 * Math.sin(t * 0.001 + node.pulseOffset)
+        const pulse = 0.75 + 0.25 * Math.sin(time * 0.0012 + node.phase)
         const r = node.radius * pulse
-        const alpha = node.opacity * pulse
+        const alpha = (0.5 + 0.5 * node.depth) * pulse
 
         if (node.isHub) {
-          // Hub node: large glow
-          drawGlow(node.x, node.y, r + 4, "#E8720A", alpha * 0.3, 20)
-          drawGlow(node.x, node.y, r, "#FFA040", alpha, 10)
+          // Outer ambient ring
+          glowCircle(node.x, node.y, r, "255,130,20", alpha * 0.9, 4)
+          // Bright core
+          glowCircle(node.x, node.y, r * 0.45, "255,200,100", 1, 1)
         } else {
-          drawGlow(node.x, node.y, r, "#E8720A", alpha, 5)
+          glowCircle(node.x, node.y, r, "232,114,10", alpha * 0.85, 2)
         }
 
         node.x += node.vx
         node.y += node.vy
-        if (node.x < 0 || node.x > canvas.width) node.vx *= -1
-        if (node.y < 0 || node.y > canvas.height) node.vy *= -1
+        if (node.x < 0 || node.x > w) node.vx *= -1
+        if (node.y < 0 || node.y > h) node.vy *= -1
       }
 
       animId = requestAnimationFrame(draw)
     }
 
     resize()
-    initNodes()
+    init()
     animId = requestAnimationFrame(draw)
 
-    const ro = new ResizeObserver(() => {
-      resize()
-      initNodes()
-    })
+    const ro = new ResizeObserver(() => { resize(); init() })
     ro.observe(canvas)
 
     return () => {
@@ -205,6 +233,7 @@ export function FlowCanvas() {
     <canvas
       ref={canvasRef}
       className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ opacity: 0.9 }}
       aria-hidden
     />
   )
