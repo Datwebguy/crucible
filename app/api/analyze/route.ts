@@ -1,8 +1,57 @@
-import Anthropic from "@anthropic-ai/sdk"
 import { AGENTS } from "@/lib/agents"
 import { checkRateLimit } from "@/lib/rateLimit"
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const SWARMS_API_URL = "https://api.swarms.world/v1/agent/completions"
+
+async function runSwarmAgent(
+  agentName: string,
+  systemPrompt: string,
+  task: string
+): Promise<string> {
+  const res = await fetch(SWARMS_API_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.SWARMS_API_KEY!,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      agent_config: {
+        agent_name: agentName,
+        description: `Crucible agent: ${agentName}`,
+        system_prompt: systemPrompt,
+        model_name: "claude-sonnet-4-6",
+        max_tokens: 1200,
+        temperature: 0.5,
+        max_loops: 1,
+      },
+      task,
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Swarms API error ${res.status}: ${body}`)
+  }
+
+  const data = await res.json()
+
+  // Extract text from possible response shapes
+  const raw: string =
+    data.output ??
+    data.outputs?.[0]?.content ??
+    data.outputs?.[0] ??
+    data.choices?.[0]?.message?.content ??
+    data.result ??
+    ""
+
+  // Strip any markdown that slips through despite prompt instructions
+  return String(raw)
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^[\s]*[-•]\s/gm, "")
+    .replace(/_{2}(.+?)_{2}/g, "$1")
+    .trim()
+}
 
 export async function POST(req: Request) {
   try {
@@ -27,26 +76,12 @@ export async function POST(req: Request) {
     const results: Record<string, string> = {}
 
     for (const agent of AGENTS) {
-      const content =
+      const task =
         agent.id === "audit"
           ? `Original decision:\n"${input}"\n\nAgent I (Bias Hunter):\n${results.bias}\n\nAgent II (Bear Case Builder):\n${results.bear}\n\nAgent III (Assumption Extractor):\n${results.assumption}`
           : input
 
-      const response = await client.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1200,
-        system: agent.prompt,
-        messages: [{ role: "user", content }],
-      })
-
-      const raw = response.content[0].type === "text" ? response.content[0].text : ""
-      // Strip any markdown that slips through despite prompt instructions
-      results[agent.id] = raw
-        .replace(/\*\*(.+?)\*\*/g, "$1")   // **bold**
-        .replace(/\*(.+?)\*/g, "$1")         // *italic*
-        .replace(/^[\s]*[-•]\s/gm, "")       // leading hyphens/bullets
-        .replace(/_{2}(.+?)_{2}/g, "$1")     // __bold__
-        .trim()
+      results[agent.id] = await runSwarmAgent(agent.name, agent.prompt, task)
     }
 
     const scoreMatch = results.audit?.match(/REASONING SCORE:\s*(\d+)\/100/)
