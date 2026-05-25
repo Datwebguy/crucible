@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070609;
+  --foreground: #f5f3ff;
+  --accent: #E8720A;
+  --accent-muted: rgba(232, 114, 10, 0.15);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-dm-sans);
+  --font-body: var(--font-dm-sans);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-heading: var(--font-bricolage);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Selection */
+::selection {
+  background: rgba(232, 114, 10, 0.25);
+  color: #fff;
+}
+
+/* Solana wallet adapter overrides */
+.wallet-adapter-button {
+  font-family: var(--font-ibm-plex-mono) !important;
+  font-size: 11px !important;
+  background: transparent !important;
+  border: 1px solid rgba(232, 114, 10, 0.4) !important;
+  color: #E8720A !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  height: auto !important;
+}
+.wallet-adapter-button:hover {
+  background: rgba(232, 114, 10, 0.08) !important;
+  border-color: #E8720A !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: #0c0a10 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+}
+.wallet-adapter-modal-title {
+  font-family: var(--font-bricolage) !important;
+  color: #fff !important;
+}
+.wallet-adapter-modal-list li {
+  font-family: var(--font-dm-sans) !important;
+}
+.wallet-adapter-modal-list-more {
+  color: rgba(255,255,255,0.4) !important;
+}
