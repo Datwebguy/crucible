@@ -4,7 +4,7 @@
 
 Crucible runs your investment thesis, DAO proposal, or on-chain strategy through four sequential AI agents — each one stress-testing a different dimension of your reasoning. The result is a structured audit with a Reasoning Score out of 100 and a final verdict before you commit.
 
-Built with Anthropic Claude, deployed on Solana, listed on the Swarms Marketplace.
+Built on the Swarms API, deployed on Solana, listed on the Swarms Marketplace.
 
 ---
 
@@ -41,12 +41,24 @@ Holding 1,000+ CRUCIBLE tokens (Solana SPL) unlocks the token holder tier automa
 |-------|-----------|
 | Framework | Next.js 16 (App Router, TypeScript) |
 | Styling | Tailwind CSS v4 |
-| AI | Anthropic API — claude-sonnet-4-6 |
+| AI Agents | Swarms API — gpt-4o via api.swarms.world |
 | Database | Supabase (Postgres + RLS) |
-| Auth | Supabase Auth |
 | Wallet | Solana Wallet Adapter |
 | Token Check | @solana/web3.js + SPL Token |
 | Deployment | Vercel |
+
+---
+
+## Token
+
+| | |
+|-|-|
+| Token | $CRUCIBLE |
+| Network | Solana |
+| Mint Address | `AprqPULHGkpD8uy9K3PtNeJdcVzzyhcFexcmtSg5swrm` |
+| Pool Address | `2KSWoDobBLvwVqfXucb82vrLDyzwTFgX6rD1w5Rv7BWk` |
+| Buy | [DexScreener](https://dexscreener.com/solana/AprqPULHGkpD8uy9K3PtNeJdcVzzyhcFexcmtSg5swrm) |
+| Marketplace | [Swarms Marketplace](https://swarms.world) |
 
 ---
 
@@ -55,8 +67,8 @@ Holding 1,000+ CRUCIBLE tokens (Solana SPL) unlocks the token holder tier automa
 ### Prerequisites
 
 - Node.js 18+
-- An Anthropic API key
-- A Supabase project (optional for local dev — app degrades gracefully without it)
+- A Swarms API key (swarms.world/platform/api-keys)
+- A Supabase project (optional — app degrades gracefully without it)
 - A Solana wallet for token-gating (Phantom or Solflare)
 
 ### 1. Clone and install
@@ -74,8 +86,8 @@ npm install --ignore-scripts
 Create a `.env.local` file in the project root:
 
 ```env
-# Anthropic
-ANTHROPIC_API_KEY=sk-ant-...
+# Swarms API (powers all 4 agents)
+SWARMS_API_KEY=your-swarms-api-key
 
 # Supabase (optional for local dev)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -84,11 +96,11 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # Solana
 NEXT_PUBLIC_SOLANA_RPC=https://api.mainnet-beta.solana.com
-NEXT_PUBLIC_CRUCIBLE_TOKEN_MINT=your-token-mint-address
+NEXT_PUBLIC_CRUCIBLE_TOKEN_MINT=AprqPULHGkpD8uy9K3PtNeJdcVzzyhcFexcmtSg5swrm
 CRUCIBLE_TOKEN_MINIMUM_HOLD=1000
 ```
 
-Without Supabase keys, rate limiting is bypassed and saving is disabled. The core analysis engine works with only `ANTHROPIC_API_KEY`.
+Without Supabase keys, rate limiting is bypassed and saving is disabled. The core analysis engine works with only `SWARMS_API_KEY`.
 
 ### 3. Set up the database
 
@@ -119,14 +131,14 @@ crucible/
 │   ├── token/
 │   │   └── page.tsx            # CRUCIBLE token info + balance check
 │   └── api/
-│       ├── analyze/route.ts    # Runs the 4 agents sequentially
+│       ├── analyze/route.ts    # Runs the 4 agents via Swarms API
 │       ├── save-analysis/      # Saves analysis to Supabase
 │       ├── check-token/        # Checks CRUCIBLE token balance
 │       └── history/            # Fetches saved analyses
 ├── components/
 │   ├── AgentCard.tsx           # Individual agent output card
 │   ├── AnalysisInput.tsx       # Input form with examples
-│   ├── FlowCanvas.tsx          # Animated node graph background
+│   ├── FlowCanvas.tsx          # Animated node graph background (full screen)
 │   ├── Logo.tsx                # Hexagon mark + wordmark
 │   ├── Navbar.tsx              # Top nav with wallet button
 │   ├── ProgressStepper.tsx     # I → II → III → IV progress bar
@@ -140,7 +152,6 @@ crucible/
 │   └── useRateLimit.ts         # Tracks free tier usage client-side
 ├── lib/
 │   ├── agents.ts               # All 4 agent system prompts
-│   ├── anthropic.ts            # Anthropic client
 │   ├── supabase.ts             # Supabase client (anon + service)
 │   ├── solana.ts               # SPL token balance checker
 │   └── rateLimit.ts            # Server-side rate limiting
@@ -154,13 +165,13 @@ crucible/
 
 ### `POST /api/analyze`
 
-Runs the four agents sequentially against the submitted text.
+Runs the four agents sequentially through the Swarms API.
 
 **Body:** `{ input: string, walletAddress?: string }`
 
 **Response:** `{ results: Record<AgentId, string>, reasoningScore: number | null, remaining: number, isTokenHolder: boolean }`
 
-Rate limited: 3/day for free tier, 999/day for token holders (tracked in Supabase `usage` table).
+Rate limited: 3/day for free tier, unlimited for token holders (tracked in Supabase `usage` table).
 
 ### `POST /api/check-token`
 
@@ -193,26 +204,13 @@ Fetches saved analyses for a wallet. Requires token holder status.
 3. Add all environment variables from `.env.local` in the Vercel dashboard
 4. Deploy — builds in ~2 minutes
 
-### Post-deploy
-
-- Add your Vercel URL to Supabase → Authentication → URL Configuration → Allowed Origins
-- Set `NEXT_PUBLIC_CRUCIBLE_TOKEN_MINT` to your token mint address once the token is live
-
----
-
-## CRUCIBLE Token
-
-The CRUCIBLE token is a Solana SPL token listed on the [Swarms Marketplace](https://swarms.world). Holding 1,000 or more tokens unlocks unlimited analyses, full history, sharing, and governance participation.
-
-To check your balance or connect your wallet, visit the `/token` page in the app.
-
 ---
 
 ## Environment Variables Reference
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key |
+| `SWARMS_API_KEY` | Yes | Your Swarms API key |
 | `NEXT_PUBLIC_SUPABASE_URL` | No* | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | No* | Supabase anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | No* | Supabase service role key (server only) |
@@ -224,10 +222,12 @@ To check your balance or connect your wallet, visit the `/token` page in the app
 
 ---
 
-## License
+## Author
 
-MIT
+Built by **Datwebguy**
 
 ---
 
-*Built for Web3. Powered by Anthropic. Token on Solana.*
+## License
+
+MIT
