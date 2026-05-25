@@ -19,7 +19,7 @@ async function runSwarmAgent(
         agent_name: agentName,
         description: `Crucible agent: ${agentName}`,
         system_prompt: systemPrompt,
-        model_name: "claude-sonnet-4-6",
+        model_name: "gpt-4o",
         max_tokens: 1200,
         temperature: 0.5,
         max_loops: 1,
@@ -30,10 +30,12 @@ async function runSwarmAgent(
 
   if (!res.ok) {
     const body = await res.text()
+    console.error(`[swarms] ${res.status} for agent "${agentName}":`, body)
     throw new Error(`Swarms API error ${res.status}: ${body}`)
   }
 
   const data = await res.json()
+  console.log(`[swarms] raw response for "${agentName}":`, JSON.stringify(data).slice(0, 500))
 
   // Extract text from possible response shapes
   const raw: string =
@@ -42,7 +44,7 @@ async function runSwarmAgent(
     data.outputs?.[0] ??
     data.choices?.[0]?.message?.content ??
     data.result ??
-    ""
+    JSON.stringify(data)
 
   // Strip any markdown that slips through despite prompt instructions
   return String(raw)
